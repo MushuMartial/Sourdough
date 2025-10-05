@@ -1,29 +1,41 @@
 <template>
   <div class="reservation-form">
-    <h3>Réserver un desk</h3>
+    <h3>Reserve a Desk</h3>
     <form @submit.prevent="submitReservation">
-      <label>Nom:</label>
-      <input v-model="userName" required />
+      <div class="form-row">
+        <div class="form-field">
+          <label>Name:</label>
+          <input v-model="userName" required />
+        </div>
 
-      <label>Desk:</label>
-      <select v-model="deskId" required>
-        <option v-for="n in 8" :key="n" :value="n">Desk {{ n }}</option>
-      </select>
+        <div class="form-field">
+          <label>Desk:</label>
+          <select v-model="deskId" required>
+            <option v-for="n in 8" :key="n" :value="n">Desk {{ n }}</option>
+          </select>
+        </div>
 
-      <label>Date:</label>
-      <input type="date" v-model="date" required />
+        <div class="form-field">
+          <label>Date:</label>
+          <input type="date" v-model="date" required />
+        </div>
 
-      <label>Heure de début:</label>
-      <select v-model="startTime" required @change="updateEndTimeSlots">
-        <option v-for="slot in timeSlots" :key="slot" :value="slot">{{ slot }}</option>
-      </select>
+        <div class="form-field">
+          <label>Begin:</label>
+          <select v-model="startTime" required @change="updateEndTimeSlots">
+            <option v-for="slot in timeSlots" :key="slot" :value="slot">{{ slot }}</option>
+          </select>
+        </div>
 
-      <label>Heure de fin:</label>
-      <select v-model="endTime" required>
-        <option v-for="slot in endTimeSlots" :key="slot" :value="slot">{{ slot }}</option>
-      </select>
+        <div class="form-field">
+          <label>End:</label>
+          <select v-model="endTime" required>
+            <option v-for="slot in endTimeSlots" :key="slot" :value="slot">{{ slot }}</option>
+          </select>
+        </div>
 
-      <button type="submit">Réserver</button>
+        <button type="submit">Reserve</button>
+      </div>
     </form>
   </div>
 </template>
@@ -45,36 +57,33 @@ export default {
     };
   },
   created() {
-    // Générer tous les créneaux de 08:00 à 18:00 par tranche de 15 min
     const slots = [];
     for (let h = 8; h <= 18; h++) {
       for (let m = 0; m < 60; m += 15) {
-        let hh = h.toString().padStart(2, '0');
-        let mm = m.toString().padStart(2, '0');
+        const hh = h.toString().padStart(2, "0");
+        const mm = m.toString().padStart(2, "0");
         slots.push(`${hh}:${mm}`);
       }
     }
     this.timeSlots = slots;
-    this.endTimeSlots = slots; // initialement identiques
+    this.endTimeSlots = slots;
   },
   methods: {
     updateEndTimeSlots() {
-      // Filtrer les créneaux de fin pour qu’ils soient après l’heure de début
       this.endTimeSlots = this.timeSlots.filter(slot => slot > this.startTime);
       if (!this.endTimeSlots.includes(this.endTime)) {
-        this.endTime = ""; // réinitialiser si la valeur n'est plus valide
+        this.endTime = "";
       }
     },
     async submitReservation() {
       if (!this.startTime || !this.endTime || this.startTime >= this.endTime) {
-        alert("Veuillez saisir un créneau valide.");
+        alert("Please choose a valid time slot.");
         return;
       }
 
       const startDateTime = `${this.date}T${this.startTime}:00`;
       const endDateTime = `${this.date}T${this.endTime}:00`;
 
-      // Vérification des conflits
       const q = query(collection(db, "reservations"), where("deskId", "==", this.deskId));
       const snapshot = await getDocs(q);
       const existing = snapshot.docs
@@ -90,27 +99,18 @@ export default {
       });
 
       if (conflict) {
-        alert("Ce créneau est déjà réservé. Choisissez un autre horaire.");
+        alert("This slot is already reserved. Please choose another time slot.");
         return;
       }
 
-      console.log("Envoi de la réservation :", {
+      await addDoc(collection(db, "reservations"), {
         deskId: this.deskId,
         userName: this.userName,
         startTime: startDateTime,
         endTime: endDateTime
-        });
+      });
 
-        await addDoc(collection(db, "reservations"), {
-        deskId: this.deskId,
-        userName: this.userName,
-        startTime: startDateTime,
-        endTime: endDateTime
-        });
-
-      console.log("Réservation ajoutée !");
-
-      alert("Réservation ajoutée !");
+      alert("Reservation added!");
       this.userName = "";
       this.deskId = 1;
       this.date = "";
@@ -126,15 +126,88 @@ export default {
 
 <style>
 .reservation-form {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 24px 32px;
+  border-radius: 18px;
+  background-color: #fafafa;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #333;
+}
+
+.reservation-form h3 {
+  margin-bottom: 20px;
+  font-size: 1.6rem;
+  font-weight: 600;
+  text-align: center;
+  color: #222;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.form-field {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  min-width: 140px;
+  flex: 1;
 }
-.reservation-form input, .reservation-form select, .reservation-form button {
-  padding: 6px;
-  font-size: 14px;
+
+.form-field label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
 }
+
+.form-field input,
+.form-field select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: #007aff;
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
 button {
+  padding: 12px 24px;
+  background-color: #007aff;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
+  align-self: flex-end;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+  background-color: #0062d6;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 900px) {
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  button {
+    width: 100%;
+    margin-top: 10px;
+  }
 }
 </style>

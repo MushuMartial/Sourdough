@@ -1,54 +1,59 @@
 <template>
   <div class="home">
-    <h1>Réservation de desks</h1>
+    <h1>Desk Reservation</h1>
 
-    <div class="form-section">
-      <ReservationForm @reservation-added="refreshDayView" />
-    </div>
+    <ReservationForm @reservation-added="refreshDayView" />
 
-    <div class="dayview-section">
-      <DayView ref="dayView" />
-    </div>
+    <DayView ref="dayView" />
   </div>
 </template>
 
 <script>
-import ReservationForm from '../components/ReservationForm.vue';
-import DayView from '../components/DayView.vue';
+import ReservationForm from "../components/ReservationForm.vue";
+import DayView from "../components/DayView.vue";
 
 export default {
   components: { ReservationForm, DayView },
   methods: {
     refreshDayView() {
-      this.$refs.dayView.fetchReservations();
-    }
-  }
-}
+      if (this.$refs.dayView && this.$refs.dayView.fetchReservations) {
+        this.$refs.dayView.fetchReservations();
+      }
+    },
+  },
+};
 </script>
 
 <style>
 .home {
-  max-width: 1200px;
+  max-width: 1500px;
   margin: 0 auto;
-  padding: 20px;
-  background-color: #f0f2f5;
-  font-family: Arial, sans-serif;
+  padding: 40px 24px;
+  background-color: #f5f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  gap: 40px; /* espace entre formulaire et dayview */
+  min-height: 100vh;
 }
 
 h1 {
   text-align: center;
-  color: #333;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1c1c1e;
+  margin-bottom: 0;
 }
 
-.form-section, .dayview-section {
-  background-color: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
+@media (max-width: 900px) {
+  .home {
+    padding: 24px 12px;
+    gap: 24px;
+  }
 
-.dayview-section {
-  overflow-x: auto;
+  h1 {
+    font-size: 1.6rem;
+  }
 }
 </style>
