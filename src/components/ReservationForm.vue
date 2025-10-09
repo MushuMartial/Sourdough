@@ -109,7 +109,7 @@ export default {
         endTime: endDateTime
       });
 
-      alert("Reservation added!");
+      //alert("Reservation added!");
       this.userName = "";
       this.deskId = 1;
       this.date = "";

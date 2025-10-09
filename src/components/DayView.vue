@@ -48,12 +48,12 @@
     <!-- 💬 Mini Popover de confirmation -->
     <div v-if="confirmPopover" class="confirm-popover">
       <p>
-        Supprimer la réservation de
+        Delete this reservation
         <strong>{{ confirmPopover.reservation.userName }}</strong> ?
       </p>
       <div class="buttons">
-        <button @click="confirmDelete" class="delete">Oui</button>
-        <button @click="confirmPopover = null" class="cancel">Non</button>
+        <button @click="confirmDelete" class="delete">Yes</button>
+        <button @click="confirmPopover = null" class="cancel">No</button>
       </div>
     </div>
   </div>
