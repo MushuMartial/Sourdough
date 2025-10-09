@@ -1,4 +1,4 @@
-<template>
+<template> 
   <div class="day-view">
     <h3>View day: {{ selectedDate }}</h3>
 
@@ -16,25 +16,52 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(desk, index) in desks" :key="desk" :class="`desk-row desk-color-${index}`">
+          <tr
+            v-for="(desk, index) in desks"
+            :key="desk"
+            :class="`desk-row desk-color-${index}`"
+          >
             <td>Desk {{ desk }}</td>
             <td
               v-for="slot in timeSlots"
               :key="slot"
-              :class="{'reserved': isReserved(desk, slot)}"
+              :class="{ reserved: isReserved(desk, slot) }"
+              @mouseenter="handleHover(desk, slot)"
+              @mouseleave="hoveredReservation = null"
             >
-              {{ getReservationName(desk, slot) }}
+              <div class="cell-content">
+                <span class="reservation-name">{{ getReservationName(desk, slot) }}</span>
+                <button
+                  v-if="isReserved(desk, slot)"
+                  class="delete-icon"
+                  @click.stop="openConfirmPopover(desk, slot)"
+                >
+                  🗑️
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- 💬 Mini Popover de confirmation -->
+    <div v-if="confirmPopover" class="confirm-popover">
+      <p>
+        Supprimer la réservation de
+        <strong>{{ confirmPopover.reservation.userName }}</strong> ?
+      </p>
+      <div class="buttons">
+        <button @click="confirmDelete" class="delete">Oui</button>
+        <button @click="confirmPopover = null" class="cancel">Non</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import { ref, onMounted, watch } from "vue";
-import { collection, query, onSnapshot } from "firebase/firestore";
+import { collection, query, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../firebase";
 
 export default {
@@ -42,11 +69,13 @@ export default {
     const desks = [1, 2, 3, 4, 5, 6, 7, 8];
     const selectedDate = ref(new Date().toISOString().slice(0, 10));
     const reservations = ref([]);
+    const hoveredReservation = ref(null);
+    const confirmPopover = ref(null);
 
-    // Création des créneaux
+    // Créneaux horaires
     const timeSlots = [];
-    for (let h = 8; h <= 18; h++) {
-      for (let m = 0; m < 60; m += 15) {
+    for (let h = 8; h <= 17; h++) {
+      for (let m = 0; m < 60; m += 30) {
         const hh = h.toString().padStart(2, "0");
         const mm = m.toString().padStart(2, "0");
         timeSlots.push(`${hh}:${mm}`);
@@ -60,7 +89,7 @@ export default {
       const q = query(collection(db, "reservations"));
       unsubscribe = onSnapshot(q, (snapshot) => {
         reservations.value = snapshot.docs
-          .map((doc) => doc.data())
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
           .filter((r) => {
             const start = r.startTime.toDate ? r.startTime.toDate() : new Date(r.startTime);
             return start.toISOString().slice(0, 10) === selectedDate.value;
@@ -71,8 +100,8 @@ export default {
     onMounted(fetchReservationsRealtime);
     watch(selectedDate, fetchReservationsRealtime);
 
-    const isReserved = (deskId, slot) => {
-      return reservations.value.some((r) => {
+    const getReservation = (deskId, slot) => {
+      return reservations.value.find((r) => {
         const start = r.startTime.toDate ? r.startTime.toDate() : new Date(r.startTime);
         const end = r.endTime.toDate ? r.endTime.toDate() : new Date(r.endTime);
         const [h, m] = slot.split(":");
@@ -81,18 +110,42 @@ export default {
       });
     };
 
+    const isReserved = (deskId, slot) => !!getReservation(deskId, slot);
+
     const getReservationName = (deskId, slot) => {
-      const res = reservations.value.find((r) => {
-        const start = r.startTime.toDate ? r.startTime.toDate() : new Date(r.startTime);
-        const end = r.endTime.toDate ? r.endTime.toDate() : new Date(r.endTime);
-        const [h, m] = slot.split(":");
-        const slotDate = new Date(`${selectedDate.value}T${h}:${m}:00`);
-        return slotDate >= start && slotDate < end && r.deskId === deskId;
-      });
+      const res = getReservation(deskId, slot);
       return res ? res.userName : "";
     };
 
-    return { desks, selectedDate, timeSlots, isReserved, getReservationName };
+    const handleHover = (deskId, slot) => {
+      const res = getReservation(deskId, slot);
+      if (res) hoveredReservation.value = { deskId, slot };
+    };
+
+    const openConfirmPopover = (deskId, slot) => {
+      const res = getReservation(deskId, slot);
+      if (res) confirmPopover.value = { deskId, slot, reservation: res };
+    };
+
+    const confirmDelete = async () => {
+      if (!confirmPopover.value) return;
+      await deleteDoc(doc(db, "reservations", confirmPopover.value.reservation.id));
+      confirmPopover.value = null;
+    };
+
+    return {
+      desks,
+      selectedDate,
+      timeSlots,
+      reservations,
+      isReserved,
+      getReservationName,
+      hoveredReservation,
+      handleHover,
+      confirmPopover,
+      openConfirmPopover,
+      confirmDelete,
+    };
   },
 };
 </script>
@@ -105,7 +158,7 @@ export default {
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: #333;
-  max-width: 1200px;
+  width: 1200px;
   margin: 40px auto;
 }
 
@@ -175,6 +228,7 @@ td {
   text-align: center;
   border: 1px solid #e5e5ea;
   transition: background-color 0.2s;
+  position: relative;
 }
 
 tr:hover td {
@@ -193,8 +247,87 @@ tr:hover td {
   font-weight: 600;
   border-radius: 6px;
   box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
+/* ✅ Cellule avec icône poubelle */
+.cell-content {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.reservation-name {
+  display: inline-block;
+}
+
+.delete-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8); /* centré + échelle initiale */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px; /* plus lisible */
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: auto;
+}
+
+.reserved:hover .delete-icon {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1); /* centré + agrandi au hover */
+}
+
+/* Mini popover */
+.confirm-popover {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 18px 24px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  text-align: center;
+  animation: fadeIn 0.2s ease;
+  z-index: 200;
+}
+
+.confirm-popover .buttons {
+  margin-top: 12px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirm-popover .delete {
+  background: #ff3b30;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.confirm-popover .cancel {
+  background: #ccc;
+  color: #333;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -45%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+/* Couleurs par desk */
 .desk-color-0 td:first-child { background-color: #e6f7ff; }
 .desk-color-1 td:first-child { background-color: #fff1e6; }
 .desk-color-2 td:first-child { background-color: #f3e6ff; }

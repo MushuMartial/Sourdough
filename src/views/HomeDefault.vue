@@ -34,7 +34,7 @@ export default {
   color: #333;
   display: flex;
   flex-direction: column;
-  gap: 40px; /* espace entre formulaire et dayview */
+  gap: 30px; /* espace entre formulaire et dayview */
   min-height: 100vh;
 }
 
@@ -49,7 +49,7 @@ h1 {
 @media (max-width: 900px) {
   .home {
     padding: 24px 12px;
-    gap: 24px;
+    gap: 12px;
   }
 
   h1 {

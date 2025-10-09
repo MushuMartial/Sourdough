@@ -1,6 +1,5 @@
 <template>
   <div class="reservation-form">
-    <h3>Reserve a Desk</h3>
     <form @submit.prevent="submitReservation">
       <div class="form-row">
         <div class="form-field">
@@ -58,8 +57,8 @@ export default {
   },
   created() {
     const slots = [];
-    for (let h = 8; h <= 18; h++) {
-      for (let m = 0; m < 60; m += 15) {
+    for (let h = 8; h <= 17; h++) {
+      for (let m = 0; m < 60; m += 30) {
         const hh = h.toString().padStart(2, "0");
         const mm = m.toString().padStart(2, "0");
         slots.push(`${hh}:${mm}`);
@@ -126,7 +125,7 @@ export default {
 
 <style>
 .reservation-form {
-  max-width: 1200px;
+  width: 1200px;
   margin: 40px auto;
   padding: 24px 32px;
   border-radius: 18px;
@@ -134,10 +133,11 @@ export default {
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: #333;
+  margin-bottom: 10px; /* espace personnalisé avec DayView */
 }
 
 .reservation-form h3 {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   font-size: 1.6rem;
   font-weight: 600;
   text-align: center;
