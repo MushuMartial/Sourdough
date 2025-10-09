@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <h1>Desk Reservation</h1>
+    <h1>Jizoku: Nihonbashi desk reservation</h1>
 
     <ReservationForm @reservation-added="refreshDayView" />
 
